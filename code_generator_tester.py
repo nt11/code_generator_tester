@@ -9,6 +9,7 @@ import pandas as pd
 import tqdm
 import pprint
 
+
 def click_generate_code(browser_obj):
     """
     Click the Generate Code button
@@ -104,25 +105,25 @@ def go_to_date(browser_obj, month, year):
 
     # Get the month name
     month_year = month_element.text
-    #print(month_year)
+    # print(month_year)
     month_name, current_year = month_year.split(" ")
-    #print(month_name, current_year)
+    # print(month_name, current_year)
 
     # Get the month number
     month_number = month_name_to_number(month_name)
-    #print(month_number)
+    # print(month_number)
 
     # Get the difference in years
     year_difference = int(year) - int(current_year)
-    #print(year_difference)
+    # print(year_difference)
 
     # Get the difference in months
     month_difference = month - month_number
-    #print(month_difference)
+    # print(month_difference)
 
     # Get the number of times to click the next month arrow
     next_month_arrow_clicks = year_difference * 12 + month_difference
-    #print(next_month_arrow_clicks)
+    # print(next_month_arrow_clicks)
 
     # Click the next month arrow the required number of times
     for i in range(next_month_arrow_clicks):
@@ -176,7 +177,7 @@ def get_fields_from_table(browser_obj):
         # Loop through each column
         for column in columns:
             # Print the column text
-            #print(column.text)
+            # print(column.text)
 
             if row_num > 0:
                 data.append(column.text)
@@ -199,7 +200,7 @@ def click_back_to_main_menu(browser_obj):
     wait.until(EC.presence_of_element_located((By.TAG_NAME, 'body')))
 
 
-def get_data_for_scenario (browser_obj, serial, date_month, date_year, options) -> list[list]:
+def get_data_for_scenario(browser_obj, serial, date_month, date_year, options) -> list[list]:
     """
     Get the data from the table for a given scenario
     :param browser_obj: browser object
@@ -220,12 +221,14 @@ def get_data_for_scenario (browser_obj, serial, date_month, date_year, options) 
     wait.until(EC.presence_of_element_located((By.TAG_NAME, 'body')))
     return table_data_returned
 
-def iterate_scenarios(browser_obj, scenarios, serial):
+
+def iterate_scenarios(browser_obj, scenarios, serial, ctr):
     """
     Iterate over a list of scenarios and get the data for each scenario
     :param browser_obj: browser object
     :param scenarios: list of scenarios
     :param serial: serial number
+    :param ctr: counter
     :return: None
     """
 
@@ -234,11 +237,17 @@ def iterate_scenarios(browser_obj, scenarios, serial):
         table_data_returned = get_data_for_scenario(browser_obj=browser_obj, serial=serial,
                                                     date_month=scenario["date_month"], date_year=scenario["date_year"],
                                                     options=scenario["options"])
-        try:
-            for row in table_data_returned:
-                db.append({'serial': serial, 'scenario_month': scenario["date_month"], 'scenario_year': scenario["date_year"], 'date_month': row[0], 'code': row[1], 'options': scenario["options"]})
-        except:
-                db.append({'serial': serial, 'scenario_month': scenario["date_month"], 'scenario_year': scenario["date_year"], 'date_month': "N/A", 'code': "N/A", 'options': scenario["options"]})
+        for row in table_data_returned:
+            try:
+                db.append({'ctr': ctr, 'serial': serial, 'scenario_month': scenario["date_month"],
+                           'scenario_year': scenario["date_year"], 'scenario_options': scenario["options"],
+                           'date_month': row[0], 'code': row[1]
+                           })
+            except:
+                db.append({'ctr': ctr, 'serial': serial, 'scenario_month': scenario["date_month"],
+                           'scenario_year': scenario["date_year"], 'scenario_options': scenario["options"],
+                           'date_month': "ERROR", 'code': "ERROR"
+                           })
     return db
 
 
@@ -249,7 +258,6 @@ if __name__ == "__main__":
         credentials = f.readlines()
         username_cred = credentials[0].strip()
         password_cred = credentials[1].strip()
-
 
     service = Service(r"/Users/nirt11/PycharmProjects/code_generator_tester/geckodriver")
     browser = webdriver.Firefox(service=service)
@@ -271,8 +279,6 @@ if __name__ == "__main__":
     login_button = browser.find_element(By.ID, "LoginPage_LoginButton")
     # enter the username
 
-
-
     username.send_keys(username_cred)
     password.send_keys(password_cred)
 
@@ -293,10 +299,9 @@ if __name__ == "__main__":
                  {"date_month": 11, "date_year": 2030, "options": "NONE"},
                  {"date_month": 7, "date_year": 2031, "options": "NONE"},
 
-
                  ]
 
-    for i in range(1,13):
+    for i in range(1, 13):
         scenarios.append({"date_month": i, "date_year": 2020, "options": "NONE"})
 
     scenarios_additional = [{"date_month": 0, "date_year": 0, "options": "UNLIMITED"},
@@ -306,20 +311,19 @@ if __name__ == "__main__":
     scenarios = scenarios + scenarios_additional
 
     df_input = pd.read_csv("ISB.csv")
-    ctr = 0
+    ctr = 1
     db = []
     for serial in tqdm.tqdm(df_input["Serial"]):
-        db_single = iterate_scenarios(browser_obj=browser, scenarios=scenarios,serial=serial)
+        db_single = iterate_scenarios(ctr=ctr, browser_obj=browser, scenarios=scenarios, serial=serial)
         db = db + db_single
-        ctr +=1
-        if ctr==3:
+        ctr += 1
+        if ctr == 4:
             break
-
 
     df = pd.DataFrame(db)
     df.to_csv("output.csv")
 
-    print(db)
+   # print(db)
 
     # # Wait until the page has loaded
     # wait.until(EC.presence_of_element_located((By.TAG_NAME, 'body')))
