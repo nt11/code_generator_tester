@@ -6,6 +6,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import time
 import pandas as pd
+import tqdm
 import pprint
 
 def click_generate_code(browser_obj):
@@ -289,6 +290,7 @@ if __name__ == "__main__":
                  {"date_month": 8, "date_year": 2027, "options": "NONE"},
                  {"date_month": 9, "date_year": 2028, "options": "NONE"},
                  {"date_month": 10, "date_year": 2029, "options": "NONE"},
+                 {"date_month": 11, "date_year": 2030, "options": "NONE"},
                  {"date_month": 7, "date_year": 2031, "options": "NONE"},
 
 
@@ -303,8 +305,16 @@ if __name__ == "__main__":
                             ]
     scenarios = scenarios + scenarios_additional
 
+    df_input = pd.read_csv("ISB.csv")
+    ctr = 0
+    db = []
+    for serial in tqdm.tqdm(df_input["Serial"]):
+        db_single = iterate_scenarios(browser_obj=browser, scenarios=scenarios,serial=serial)
+        db = db + db_single
+        ctr +=1
+        if ctr==3:
+            break
 
-    db = iterate_scenarios(browser_obj=browser, scenarios=scenarios,serial="M50325541")
 
     df = pd.DataFrame(db)
     df.to_csv("output.csv")
