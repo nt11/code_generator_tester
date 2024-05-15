@@ -334,8 +334,11 @@ if __name__ == "__main__":
 
     # serial_decimation_factor = 1
     output_path = pathlib.Path("results") / "output.csv"
-    with open(output_path, "w") as f:
+    with open(output_path, "a") as f:
         for serial in tqdm.tqdm(df_input["Serial"]):
+            if ctr<851:
+                ctr += 1
+                continue
             if (ctr % 30) == 0:
                 handle_browser.close_browser()
                 handle_browser.browser_init()
